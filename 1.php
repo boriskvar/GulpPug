@@ -290,6 +290,7 @@ function scripts ()
 - позвол минифицировать js-код
 ^ npm i -D @babel/core
 - это ядро babel 
+^ npm i -D @babel/preset-env
 ?  [gulpfile.js] подключим все что добавили
 
 const babel = require('gulp-babel')
@@ -395,5 +396,375 @@ git init //* эту ком уже выполнили нажав:"инициал-
 git commit -m "first commit" //* пишем назв[first version] и клик по "Фиксация"
 git branch -M main //* пишем назв[first version] и клик по "Фиксация"
 git remote add origin https://github.com/boriskvar/GulpPug.git //^ 1 вставим эту команду в терминале
-git push -u origin main
+git push -u origin main   //^ 1 вставим эту команду в терминале
 */
+//но вручную надо создать [src]+[scripts]+[styles]
+//---------------------
+//!---10-плагины [gulp-sourcemaps] + [gulp-autoprefixer] + [Babel] --------
+//? [src\index.html]
+/* 
+<!DOCTYPE html>
+<html lang="ru">
+
+	<head>
+		<meta charset="UTF-8">
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1.0"
+		>
+		<link
+			rel="stylesheet"
+			href="dist/css/main.min.css"
+		>
+		<title>Project Name</title>
+	</head>
+
+	<body>
+		<p>Hello World</p> //* 1 добавил
+		<script src="dist/js/main.min.js"></script>
+	</body>
+
+</html>
+*/
+//-----------------------
+
+// https://www.npmjs.com/package/gulp-sourcemaps
+
+
+//? 1 установим[gulp-sourcemaps]
+// ^ npm i gulp-sourcemaps -D
+
+//? 2 подключим его в [gulpfile.js]
+const sourcemaps = require('gulp-sourcemaps') //* [sourcemaps]- это название мы придумали
+
+//? 3 используем этот ПЛАГИН в [styles()] (по их док-ии примеру)
+
+// Задача для обработки стилей
+function styles() {
+  return gulp.src(paths.styles.src)
+    .pipe(sourcemaps.init()) //* 1 его инициализация
+    .pipe(less())
+    .pipe(cleanCSS())
+    .pipe(rename({
+      basename: 'main',
+      suffix: '.min'
+    }))
+    .pipe(sourcemaps.write()) //* 2 записываем нашу карту кот б создана
+    .pipe(gulp.dest(paths.styles.dest))
+}
+
+//? ТЕРМИНАЛ наберем: gulp
+//^ [gulp]
+//~
+//--------------------------------------
+//? используем этот ПЛАГИН в [scripts()] (по их док-ии примеру)
+//* БЫЛО
+/* 
+// Задача для обработки скриптов
+function scripts() {
+  return gulp.src(paths.scripts.src, {
+    sourcemaps: true //* 1 УДАЛИМ т.к. это было по умолчанию
+  })
+  //* 2 сюда добавим [.pipe(sourcemaps.init())]
+  .pipe(babel()) //*  4 параметром настройку из док-ии [{presets: ['@babel/env'] 
+  }]   
+  .pipe(uglify())
+  .pipe(concat('main.min.js'))
+  //* 3 сюда добавим какой-то путь [.pipe(sourcemaps.write())]
+  .pipe(gulp.dest(paths.scripts.dest))
+}
+*/
+//* СТАЛО
+// Задача для обработки скриптов
+function scripts() {
+  return gulp.src(paths.scripts.src)
+  .pipe(sourcemaps.init())        //* 2
+  .pipe(babel({
+    presets: ['@babel/env'] //* 4 настройка из док-ии
+  }))
+  .pipe(uglify())
+  .pipe(concat('main.min.js'))
+  .pipe(sourcemaps.write('.'))    //* 3 //* ['.']-так б создаваться отд-й файл[dist\js\main.min.js.map] карты
+  .pipe(gulp.dest(paths.scripts.dest))
+}
+//---------------------------
+
+//? установим [gulp-autoprefixer]
+/* 
+https://www.npmjs.com/package/gulp-autoprefixer
+будет добавлять префиксы для разных стилей для разных браузеров
+*/
+//^ npm i gulp-autoprefixer -D
+
+//? подключим его в [gulpfile.js]
+const autoprefixer = require('gulp-autoprefixer')
+
+//? вызовем его
+
+// Задача для обработки стилей
+function styles() {
+  return gulp.src(paths.styles.src)
+    .pipe(sourcemaps.init())
+    .pipe(less())
+    .pipe(autoprefixer({ //* 1
+      cascade: false
+    }))
+    .pipe(cleanCSS())
+    .pipe(rename({
+      basename: 'main',
+      suffix: '.min'
+    }))
+    .pipe(sourcemaps.write('.')) //* ['.']-так б создаваться отд-й файл[dist\css\main.min.css.map] карты
+    .pipe(gulp.dest(paths.styles.dest))
+}
+--------------------------
+//^ npm i -D @babel/preset-env
+---------------------------
+
+//!---11--- [gulp-imagemin]  Сжатие изображений ---------------
+/* док-я
+https://www.npmjs.com/package/gulp-imagemin
+Custom plugin options
+// …
+.pipe(imagemin([
+	imagemin.gifsicle({interlaced: true}),
+	imagemin.mozjpeg({quality: 75, progressive: true}),
+	imagemin.optipng({optimizationLevel: 5}),
+	imagemin.svgo({ //^ SVG м понадобится...
+		plugins: [
+			{removeViewBox: true},
+			{cleanupIDs: false}
+		]
+	})
+]))
+// …
+*/
+//? 1 УСТАНОВИМ [gulp-imagemin]
+//^ npm i gulp-imagemin -D
+или
+// npm install --save-dev gulp-imagemin
+
+//? 2 ПОДКЛЮЧИМ в [gulpfile.js]
+// Подключение модулей
+const imagemin = require('gulp-imagemin') //* 1
+// import imagemin from 'gulp-imagemin'; //* 1 или это???
+
+//? 3 в [gulpfile.js] создадим новую Ф-Ю[img()]
+
+// Задача сжатия картинок
+function img() {  //* 1 создадим новую Ф-Ю[img()]
+  return gulp.src('paths.images.src')  //* отсюда берем['src/images/*']...
+        .pipe(imagemin())
+        .pipe(gulp.dest('paths.images.dest'))  //* сюда вставляем['dist/images']
+}
+// пути к изначальным файлам и файлу назначения
+const paths = {
+
+  images: {
+    src: 'src/img/*', //* ПУТЬ откуда берем['src/img/*']
+    dest: 'dist/img' //* ПУТЬ куда вставляем['dist/img']
+  }
+}
+//? 4 экспортируем эту Ф-Ю[img()] в виде отд задачи
+
+exports.img = img //экспортируем в виде отдельной ЗАДАЧИ
+
+//? 5 вставим в финальный[build]
+
+const build = gulp.series(clean, gulp.parallel(styles, scripts, img), watch) //* паралельно со стилями и скриптами добавим task[img]
+-----------------------------
+
+//? 6 СОЗДАДИМ ПАПКУ[src\img]
+//----------------------
+
+
+//!---12--- [HTMLmin] Минификация HTML ------
+/* 
+https://www.npmjs.com/package/gulp-htmlmin
+^ npm i gulp-htmlmin -D
+или
+^ npm install --save-dev gulp-htmlmin 
+Usage
+See the html-minifer docs for all available options.
+
+const gulp = require('gulp');
+const htmlmin = require('gulp-htmlmin'); //* 2 подключим
+ 
+gulp.task('minify', () => { //* 3
+  return gulp.src('src/*.html')
+    .pipe(htmlmin({ collapseWhitespace: true }))
+    .pipe(gulp.dest('dist'));
+});
+*/
+//? 1 установим [gulp-htmlmin]
+//^ [gulp-htmlmin]
+//? 2 подключим
+//^ [const htmlmin = require('gulp-htmlmin');]
+//? 3 укажем task для минификации html
+
+// Задача для минификации html
+/* 
+* БЫЛО в док-ии
+gulp.task('minify', () => {
+  return gulp.src('src/*.html')
+    .pipe(htmlmin({ collapseWhitespace: true }))
+    .pipe(gulp.dest('dist'));
+});
+ */
+//* СТАЛО 1... 
+// Задача(task) для минификации html
+function html() {
+  return gulp.src('src/*.html')
+    .pipe(htmlmin({ collapseWhitespace: true }))
+    .pipe(gulp.dest('dist'));
+}
+
+//? 4 укажем путь
+// пути к изначальным файлам и файлу назначения
+const paths = {
+  html: {
+    src: 'src/*.html', //* перенесем в папку[src] файл[index.html]
+    dest: 'dist'
+  },
+}
+//* ...СТАЛО 2 окончат 
+// Задача(task) для минификации html
+function html() {
+  return gulp.src(paths.html.src)
+    .pipe(htmlmin({ collapseWhitespace: true }))
+    .pipe(gulp.dest(paths.html.dest));
+}
+
+//? 5 экспортируем task
+
+const build = gulp.series(clean, html, gulp.parallel(styles, scripts, img), watch) //* 2 указали последовательно[html] (а уже после этого будем обрабатывать стили, скрипты и изображения)
+
+exports.clean = clean
+exports.img = img
+exports.html = html //* 1 экспортируем task[html()]
+exports.styles = styles
+exports.scripts = scripts
+exports.watch = watch
+exports.build = build
+exports.default = build
+//? 6 запустим [gulp]
+//~ видим, что все отработало и появился файл[index.html] в папке[dist]
+//? [dist\index.html]
+/* 
+<!DOCTYPE html>
+<html lang="ru">
+
+	<head>
+		<meta charset="UTF-8">
+		<meta
+			name="viewport"
+			content="width=device-width,initial-scale=1"
+		>
+		<link
+			rel="stylesheet"
+			href="dist/css/main.min.css"
+		>
+		<title>Project Name</title>
+	</head>
+
+	<body>
+		<p>Hello World</p>
+		<script src="dist/js/main.min.js"></script>
+	</body>
+
+</html>
+ */
+-----------------------------
+
+//!---16--- Шаблонизатор [pug] ---------
+//^ [gulp-pug] плагин ---------
+/* 
+https://www.npmjs.com/package/gulp-pug
+ [npm i gulp-pug -D] //* 1 установим
+Usage
+const { src, dest } = require('gulp');
+const pug = require('gulp-pug'); //* 2 подключим
+
+exports.views = () => {
+  return src('./src/*.pug')
+    .pipe(
+      pug({
+        // Your options in here.
+      })
+    )
+    .pipe(dest('./dist'));
+};
+*/
+//^  [gulp-pug] плагин
+//? 1 установим [gulp-pug] плагин
+//^ npm i gulp-pug -D
+
+//? 2 подключим [gulp-pug] плагин
+//^ const gulppug = require('gulp-pug');
+
+//? 3 запустим pug()
+
+// Задача для pug
+function pug() {
+  return gulp.src(paths.pug.src)
+    .pipe(gulppug())
+    .pipe(size({
+      showFiles: true
+    }))
+    .pipe(gulp.dest(paths.pug.dest))
+    .pipe(browserSync.stream())
+}
+
+//? 4 путь
+// пути к изначальным файлам и файлу назначения
+const paths = {
+  pug: {
+    src: 'src/*.pug',
+    dest: 'dist/'
+  }
+}
+
+//? 5 вызовем его отдельно, терминал:
+//^ gulp pug
+//? 5.1 создадим файл[src\second.pug]
+//? 5.2 поместим в него код
+/*  из док-ии возьмем код примера
+https://pugjs.org/language/tags.html
+
+ul
+  li Item A
+  li Item B
+  li Item C
+-------------
+и добавим неск эл-в
+doctype html
+*/
+doctype html
+ul
+  li Item A
+  li Item B
+  li Item C
+//? 5.3 запустим
+/* 
+$ gulp pug
+[17:26:31] Using gulpfile ~\Desktop\myTestGulp\gulpfile.js
+[17:26:31] Starting 'pug'...
+[17:26:31] second.html 69 B
+[17:26:31] Finished 'pug' after 83 ms
+*/
+//? 6 получим [dist\second.html]
+
+<!DOCTYPE html><ul><li>Item A</li><li>Item B</li><li>Item C</li></ul>
+/* 
+<!DOCTYPE html>
+<ul>
+	<li>Item A</li>
+	<li>Item B</li>
+	<li>Item C</li>
+</ul> 
+*/
+------------------------------
+
+//!---18--- CSS  препроцессор[Sass]  ---------
+//^ [gulp-sass] плагин
+
