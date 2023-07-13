@@ -767,4 +767,4 @@ $ gulp pug
 
 //!---18--- CSS  препроцессор[Sass]  ---------
 //^ [gulp-sass] плагин
-
+//^ npm install sass gulp-sass --save-dev
